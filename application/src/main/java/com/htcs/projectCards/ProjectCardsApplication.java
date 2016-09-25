@@ -1,6 +1,8 @@
 package com.htcs.projectCards;
 
-import com.htcs.projectCards.resources.CardResource;
+import com.htcs.projectCards.di.DaggerProjectCardsComponent;
+import com.htcs.projectCards.di.ProjectCardsComponent;
+import com.htcs.projectCards.di.ProjectCardsModule;
 import io.dropwizard.Application;
 import io.dropwizard.db.DataSourceFactory;
 import io.dropwizard.flyway.FlywayBundle;
@@ -26,6 +28,8 @@ public class ProjectCardsApplication extends Application<ProjectCardsConfigurati
       }
     });
 
+    //TODO Auth is not working
+
     swagger.onInitialize(bootstrap);
   }
 
@@ -35,10 +39,19 @@ public class ProjectCardsApplication extends Application<ProjectCardsConfigurati
     DBIFactory factory = new DBIFactory();
     DBI db = factory.build(env, config.getDataSourceFactory(), "db");
 
-    //TODO use dependency injection
-    CardResource cardResource = new CardResource();
-    env.jersey().register(cardResource);
+    setupResources(env);
 
     swagger.onRun(config, env, "localhost");
   }
+
+  private void setupResources(Environment env) {
+    ProjectCardsComponent component = DaggerProjectCardsComponent.builder()
+        .projectCardsModule(new ProjectCardsModule(env.getObjectMapper()))
+        .build();
+
+    env.jersey().register(component.getCardResource());
+    env.jersey().register(component.getCardCollectionResource());
+    env.jersey().register(component.getUserResource());
+  }
+
 }
